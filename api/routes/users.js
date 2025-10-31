@@ -11,7 +11,7 @@ On pourra se resservir de ces mêmes services pour d'autres entités que users
 const express = require('express');
 const router = express.Router();
 
-const service = require('../../services/users');
+const service = require('../services/users');
 
 // La route pour lire les infos d'un utilisateur
 router.get('/:id', service.getById);
