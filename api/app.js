@@ -6,6 +6,12 @@ On utilise le package CORS installé précédemment en acceptant toutes les orig
 On déclare notre route principale avec pour url de base "/".
 On ajoute un retour en cas de requête sur une route inexistante (404).
 */
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, 'env/.env.template') });
+
+console.log('Chargement du fichier .env terminé');
+console.log('URI MongoDB :', process.env.MONGODB_URI);
+
 
 const express = require('express');
 const cookieParser = require('cookie-parser');
