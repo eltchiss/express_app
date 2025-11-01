@@ -1,32 +1,29 @@
-/*
-On utilise le routeur d'express pour définir 4 routes.
-On exprime ici ce qu'on appelle un CRUD pou Create, Read, Update, Delete
-Pour déclarer une route dans express : app.verbeHttp(route, fonction)
-Ici on utilise le router pour appeler le verbe Http
-router.get('/:id', service.getById);
-le callback sera fourni par un service qu'on va déclarer
-Recourir à des services permet de structurer le projet et séparer les diverses logiques
-On pourra se resservir de ces mêmes services pour d'autres entités que users
-*/
+// Fichier : routes/users.js
+
 const express = require('express');
 const router = express.Router();
 
 const service = require('../services/users');
 const private = require('../middlewares/private');
 
-// La route pour lire les infos d'un utilisateur
-router.get('/:id', private.checkJWT, service.getById);
 
-// La route pour ajouter un utilisateur
-router.post ('/add', service.add);
+// A. ROUTES CRUD UTILISATEURS (Capitainerie)
 
-// La route pour modifier un utilisateur
-router.patch('/update',private.checkJWT, service.update);
 
-// La route pour supprimer un utilisateur
-router.delete('/:id', private.checkJWT, service.delete);
+// POST /users/ : Créer un utilisateur (Capitainerie)
+router.post ('/', service.add);
 
-// La route /authenticate
-router.post('/authenticate',service.authenticate);
+// GET /users/ : Lister l'ensemble des utilisateurs (Capitainerie)
+router.get('/', private.checkJWT, service.getAllUsers); 
+
+// GET /users/:email : Récupérer les détails d'un utilisateur (Capitainerie)
+router.get('/:email', private.checkJWT, service.getByEmail);
+
+// PUT /users/:email : Modifier les détails d'un utilisateur (Capitainerie)
+router.put('/:email', private.checkJWT, service.update); 
+
+// DELETE /users/:email : Supprimer un utilisateur (Capitainerie)
+router.delete('/:email', private.checkJWT, service.delete);
+
 
 module.exports = router;
