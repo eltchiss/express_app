@@ -9,7 +9,7 @@ exports.getById = async (req, res, next) => {
     const id = req.params.id
 
     try {
-        let user = await User.findById(id);
+        let user = await User.findById(id).select('-password'); //ne pas renvoyer le mot de passe
 
         if (user) {
             return res.status(200).json(user);
@@ -30,18 +30,35 @@ exports.add = async (req, res, next) => {
         password: req.body.password
     });
 
-    try {
-        let user = await User.create(temp);
+    // ... dans exports.add
+try {
+    let user = await User.create(temp);
+    // Assurez-vous d'exclure le mot de passe ici aussi !
+    user = await User.findById(user._id).select('-password'); 
 
-        return res.status(201).json(user);
-    } catch (error) {
-        return res.status(501).json(error);
+    return res.status(201).json(user);
+} catch (error) {
+    // Gestion des erreurs d'unicité (Email ou Username)
+    if (error.code === 11000) {
+        return res.status(409).json({ message: 'Cet email ou nom d\'utilisateur est déjà utilisé.' });
     }
+    // Gestion des erreurs de validation (required, minlength)
+    if (error.name === 'ValidationError') {
+        return res.status(400).json({ message: 'Erreur de validation des données.', details: error.errors });
+    }
+    // Erreur serveur imprévue
+    return res.status(500).json(error); // Utiliser 500 pour les erreurs serveur
+} 
+
 }
+
+// services/users.js
 
 // Ici c'est le callback qui servira à modifier un user
 exports.update = async (req, res, next) => {
-    const id = req.params.id
+    // Utiliser l'ID extrait du token par le middleware
+    const id = req.userId; 
+
     const temp = ({
         username: req.body.username,
         email: req.body.email,
@@ -50,23 +67,33 @@ exports.update = async (req, res, next) => {
 
     try {
         let user = await User.findOne({
-            _id: id
-        });
+            _id: id //Rechercher par l'ID du token
+        }).select('-password');
+        
+        
 
         if (user) {
-            Object.keys(temp).forEach((key) => {
+            //AJOUT : Appliquer les modifications reçues
+             Object.keys(temp).forEach((key) => {
                 if (!!temp[key]) {
                     user[key] = temp[key];
                 }
-            });
-
+             });
             await user.save();
-            return res.status(201).json(user);
+            //Utiliser le statut 200 OK pour une modification
+            return res.status(200).json(user);
         }
 
         return res.status(404).json('user_not_found');
     } catch (error) {
-        return res.status(501).json(error);
+        // Ajouter la gestion des erreurs 409 et 400 
+        if (error.code === 11000) {
+            return res.status(409).json({ message: 'Cet email ou nom d\'utilisateur est déjà utilisé.' });
+        }
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: 'Erreur de validation des données.', details: error.errors });
+        }
+        return res.status(500).json(error);
     }
 }
 

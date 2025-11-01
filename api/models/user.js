@@ -8,7 +8,8 @@ const User = new Schema({
     username: {
         type: String,
         trim: true,
-        required: [true, `Le nom d'utilisateur est requis`]
+        required: [true, `Le nom d'utilisateur est requis`],
+        unique: true
     },
     
     email: {
@@ -20,7 +21,9 @@ const User = new Schema({
     },
     password: {
         type: String,
-        trim: true
+        trim: true,
+        required: [true, 'Le mot de passe est requis'],
+        minlength:[4]
     },
 }, {
     // ajoute 2 champs au document createdAt et updatedAt
