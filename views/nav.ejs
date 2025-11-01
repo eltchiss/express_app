@@ -1,0 +1,36 @@
+<nav style="padding: 10px; background-color: #f4f4f4; border-bottom: 1px solid #ccc;">
+    <a href="/dashboard" style="margin-right: 15px;">Accueil/Tableau de Bord</a>
+    |
+    <a href="/catways" style="margin-right: 15px; margin-left: 15px;">Gestion des Catways</a>
+    |
+    <a href="/reservations" style="margin-right: 15px; margin-left: 15px;">Gestion des Réservations</a>
+    |
+    <a href="/users" style="margin-right: 15px; margin-left: 15px;">Gestion des Utilisateurs</a>
+    |
+    <a href="/documentation" style="margin-right: 15px; margin-left: 15px;">Documentation API</a>
+    |
+    <a href="#" id="logoutButton" style="color: red; margin-left: 15px;">Déconnexion</a>
+</nav>
+
+<script>
+    // Script de déconnexion : envoie la requête GET à /auth/logout et redirige vers l'accueil
+    document.getElementById('logoutButton').addEventListener('click', async function(event) {
+        event.preventDefault();
+
+        try {
+            // Requête à l'API de déconnexion
+            await fetch('/auth/logout', { method: 'GET' }); 
+            
+            // Suppression du token stocké côté client
+            localStorage.removeItem('jwtToken'); 
+            
+            // Redirection vers la page d'accueil
+            window.location.href = '/'; 
+        } catch (error) {
+            console.error('Erreur lors de la déconnexion:', error);
+            // Même en cas d'erreur réseau, l'utilisateur doit être déconnecté
+            localStorage.removeItem('jwtToken'); 
+            window.location.href = '/'; 
+        }
+    });
+</script>

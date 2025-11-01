@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion Catways</title>
+</head>
+<body>
+
+    <%- include('nav.ejs') %> 
+
+    <h1>Gestion des Catways</h1>
+
+    <section>
+        <h2>Ajouter un Catway</h2>
+        <form id="addCatwayForm">
+            <input type="number" name="catwayNumber" placeholder="N°" required>
+            <select name="type" required>
+                <option value="Long Side">Long Side</option>
+                <option value="Box">Box</option>
+            </select>
+            <input type="number" step="0.1" name="width" placeholder="Largeur (m)" required>
+            <input type="number" step="0.1" name="depth" placeholder="Profondeur (m)" required>
+            <button type="submit">Créer</button>
+            <p id="catwayMessage"></p>
+        </form>
+    </section>
+
+    <hr>
+
+    <section>
+        <h2>Liste</h2>
+        <table id="catwaysTable" border="1">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Type</th>
+                    <th>Taille</th>
+                    <th>Disponible</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </section>
+
+    <script>
+        const API_CATWAYS = '/catways';
+        const token = localStorage.getItem('jwtToken'); 
+
+        // Charger la liste au démarrage
+        document.addEventListener('DOMContentLoaded', loadCatways);
+
+        // --- READ: Charger et afficher les Catways ---
+        async function loadCatways() {
+            const tbody = document.querySelector('#catwaysTable tbody');
+            tbody.innerHTML = '<tr><td colspan="5">Chargement...</td></tr>';
+            try {
+                const response = await fetch(API_CATWAYS, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const catways = await response.json();
+                
+                tbody.innerHTML = '';
+                catways.forEach(c => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${c.catwayNumber}</td>
+                        <td>${c.type}</td>
+                        <td>${c.width} x ${c.depth}</td>
+                        <td style="color: ${c.isAvailable ? 'green' : 'red'};">${c.isAvailable ? 'Oui' : 'Non'}</td>
+                        <td>
+                            <button onclick="updateCatwayState('${c.catwayNumber}', ${!c.isAvailable})">Changer État</button>
+                            <button onclick="deleteCatway('${c.catwayNumber}')">Supprimer</button>
+                        </td>
+                    `;
+                });
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="5">Erreur de chargement des données.</td></tr>';
+            }
+        }
+
+        // --- CREATE: Ajouter un Catway ---
+        document.getElementById('addCatwayForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                catwayNumber: parseInt(this.catwayNumber.value),
+                type: this.type.value,
+                width: parseFloat(this.width.value),
+                depth: parseFloat(this.depth.value)
+            };
+            const msg = document.getElementById('catwayMessage');
+            try {
+                const response = await fetch(API_CATWAYS, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    msg.textContent = "Catway créé!";
+                    msg.style.color = 'green';
+                    this.reset();
+                    loadCatways();
+                } else {
+                    const error = await response.json();
+                    msg.textContent = "Erreur: " + (error.message || 'Échec');
+                    msg.style.color = 'red';
+                }
+            } catch (error) {
+                msg.textContent = "Erreur réseau.";
+                msg.style.color = 'red';
+            }
+        });
+
+        // --- UPDATE: Changer l'état (isAvailable) ---
+        async function updateCatwayState(catwayNumber, newState) {
+            try {
+                const response = await fetch(`${API_CATWAYS}/${catwayNumber}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ isAvailable: newState })
+                });
+                if (response.ok) {
+                    loadCatways();
+                } else {
+                    alert('Échec de la mise à jour.');
+                }
+            } catch (error) {
+                alert('Erreur réseau.');
+            }
+        }
+
+        // --- DELETE: Supprimer un Catway ---
+        async function deleteCatway(catwayNumber) {
+            if (!confirm(`Supprimer Catway n°${catwayNumber}?`)) return;
+            try {
+                const response = await fetch(`${API_CATWAYS}/${catwayNumber}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.status === 204) {
+                    loadCatways();
+                } else {
+                    alert('Échec de la suppression.');
+                }
+            } catch (error) {
+                alert('Erreur réseau.');
+            }
+        }
+    </script>
+
+</body>
+</html>

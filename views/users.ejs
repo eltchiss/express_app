@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Utilisateurs</title>
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+
+    <%- include('nav.ejs') %> 
+
+    <main class="users-management">
+        <h1>Gestion des Utilisateurs</h1>
+
+        <section class="user-form">
+            <h2>Créer ou Modifier un Utilisateur</h2>
+            <form id="userForm">
+                <input type="hidden" id="originalEmail" name="originalEmail"> <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" required>
+                
+                <label for="email">Email :</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="password">Mot de Passe (4 caractères min.) :</label>
+                <input type="password" id="password" name="password" required>
+                
+                <button type="submit" id="submitButton">Créer Utilisateur</button>
+                <button type="button" id="cancelButton" style="display:none;">Annuler Modification</button>
+                
+                <p id="userMessage" style="margin-top: 10px;"></p>
+            </form>
+        </section>
+
+        <hr>
+
+        <section class="list-users">
+            <h2>Liste des Comptes</h2>
+            <table id="usersTable" border="1" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th>Nom d'utilisateur</th>
+                        <th>Email</th>
+                        <th>Date de Création</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <p id="usersLoading" style="color: blue;">Chargement des données...</p>
+        </section>
+
+    </main>
+    
+    <script>
+        const API_BASE_URL = '/users';
+        const token = localStorage.getItem('jwtToken'); 
+        
+        if (!token) {
+            alert("Accès refusé. Veuillez vous connecter.");
+            window.location.href = '/';
+        }
+
+        // --- A. Fonction de chargement et affichage (READ) ---
+        async function loadUsers() {
+            document.getElementById('usersLoading').style.display = 'block';
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur de chargement: ' + response.statusText);
+                }
+
+                const users = await response.json();
+                renderUsersTable(users);
+            } catch (error) {
+                console.error("Erreur:", error);
+                document.getElementById('usersLoading').textContent = "Erreur de chargement. Console pour détails.";
+            } finally {
+                document.getElementById('usersLoading').style.display = 'none';
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.querySelector('#usersTable tbody');
+            tbody.innerHTML = ''; 
+
+            users.forEach(user => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${new Date(user.createdAt).toLocaleDateString('fr-FR')}</td>
+                    <td>
+                        <button onclick="editUser('${user.email}', '${user.username}')">Modifier</button>
+                        <button onclick="deleteUser('${user.email}')" style="background-color: red; color: white;">Supprimer</button>
+                    </td>
+                `;
+            });
+        }
+
+        // --- B. Gestion de la soumission du formulaire (CREATE / UPDATE) ---
+        document.getElementById('userForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const form = event.target;
+            const originalEmail = form.originalEmail.value; // Utilisé pour la modification
+            const submitButton = document.getElementById('submitButton');
+            
+            const data = {
+                username: form.username.value,
+                email: form.email.value,
+                password: form.password.value
+            };
+            
+            let url = API_BASE_URL;
+            let method = 'POST';
+            
+            // Si originalEmail est présent, on est en mode MODIFICATION (PUT)
+            if (originalEmail) {
+                url = `${API_BASE_URL}/${originalEmail}`; 
+                method = 'PUT';
+                // Pour une mise à jour, le mot de passe n'est pas toujours requis, mais on le laisse requis ici pour simplifier.
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                const msgElement = document.getElementById('userMessage');
+
+                if (response.ok || response.status === 204) { // 204 si la suppression est un succès
+                    msgElement.textContent = `Utilisateur ${data.email} ${originalEmail ? 'modifié' : 'créé'} avec succès!`;
+                    msgElement.style.color = 'green';
+                    
+                    form.reset();
+                    resetFormState(); // Remet le formulaire en mode 'Création'
+                    loadUsers(); // Recharger la liste
+                } else {
+                    msgElement.textContent = `Erreur: ${result.message || response.statusText}`;
+                    msgElement.style.color = 'red';
+                }
+            } catch (error) {
+                console.error(error);
+                document.getElementById('userMessage').textContent = 'Erreur réseau.';
+                document.getElementById('userMessage').style.color = 'red';
+            }
+        });
+        
+        // --- C. Fonctions d'édition et de réinitialisation ---
+        function editUser(email, username) {
+            document.getElementById('originalEmail').value = email;
+            document.getElementById('email').value = email;
+            document.getElementById('username').value = username;
+            document.getElementById('password').required = false; // Le mot de passe peut être optionnel lors de la modif (si non fourni, il reste inchangé)
+            
+            document.getElementById('submitButton').textContent = 'Sauvegarder Modification';
+            document.getElementById('cancelButton').style.display = 'inline';
+        }
+
+        document.getElementById('cancelButton').addEventListener('click', resetFormState);
+        
+        function resetFormState() {
+            document.getElementById('userForm').reset();
+            document.getElementById('originalEmail').value = '';
+            document.getElementById('password').required = true;
+            document.getElementById('submitButton').textContent = 'Créer Utilisateur';
+            document.getElementById('cancelButton').style.display = 'none';
+        }
+
+        // --- D. Fonction de suppression (DELETE) ---
+        async function deleteUser(email) {
+            if (!confirm(`Confirmer la suppression de l'utilisateur ${email} ?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/${email}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+
+                if (response.status === 204) {
+                    alert(`Utilisateur ${email} supprimé.`);
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    alert(`Échec de la suppression: ${error.message || response.statusText}`);
+                }
+            } catch (error) {
+                console.error("Erreur lors de la suppression:", error);
+                alert('Erreur réseau.');
+            }
+        }
+
+
+        // Exécuter le chargement au démarrage de la page
+        document.addEventListener('DOMContentLoaded', loadUsers);
+    </script>
+    
+</body>
+</html>
