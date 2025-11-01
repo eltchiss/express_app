@@ -20,6 +20,12 @@ exports.checkJWT = async (req, res, next) => {
                 // Stocke les données décodées de l'utilisateur dans la requête pour un usage ultérieur
                 req.decoded = decoded;
 
+                // Attacher l'objet utilisateur à la requête pour un accès facile
+                req.user = decoded.user;
+                
+                // Attacher l'ID de l'utilisateur à la requête (très pratique pour les opérations)
+                req.userId = decoded.user._id;
+
                 // Calcule le temps d'expiration (24 heures)
                 const expiresIn = 24 * 60 * 60;
 

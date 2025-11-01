@@ -18,15 +18,15 @@ const private = require('../middlewares/private');
 router.get('/:id', private.checkJWT, service.getById);
 
 // La route pour ajouter un utilisateur
-router.put('/add', service.add);
+router.post ('/add', service.add);
 
 // La route pour modifier un utilisateur
 router.patch('/update',private.checkJWT, service.update);
 
 // La route pour supprimer un utilisateur
-router.delete('/delete',private.checkJWT, service.delete);
+router.delete('/:id', private.checkJWT, service.delete);
 
 // La route /authenticate
-router.post('/authenticate', service.authenticate);
+router.post('/authenticate',service.authenticate);
 
 module.exports = router;
