@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= pageTitle %> - Capitainerie</title>
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+
+    <%- include('nav.ejs') %> 
+
+    <main class="dashboard-content">
+        <h1>👋 Tableau de Bord de la Capitainerie</h1>
+
+        <section class="user-info">
+            <h2>Vos Informations</h2>
+            <p><strong>Utilisateur :</strong> <%= user.username %></p>
+            <p><strong>Email :</strong> <%= user.email %></p>
+            <p><strong>Date du jour :</strong> <%= currentDate %></p>
+        </section>
+
+        <hr>
+
+        <section class="current-reservations">
+            <h2>Réservations en Cours</h2>
+            
+            <% if (reservations && reservations.length > 0) { %>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>Catway N°</th>
+                            <th>Date Début</th>
+                            <th>Date Fin</th>
+                            <th>Propriétaire (Email)</th>
+                            <th>Détails</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% reservations.forEach(function(res) { %>
+                            <tr>
+                                <td><%= res.catwayNumber %></td>
+                                <td><%= new Date(res.startDate).toLocaleDateString('fr-FR') %></td>
+                                <td><%= new Date(res.endDate).toLocaleDateString('fr-FR') %></td>
+                                <td><%= res.user.email %></td>
+                                <td><a href="/reservations/<%= res._id %>">Voir</a></td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            <% } else { %>
+                <p>Aucune réservation en cours trouvée ou affichée pour l'instant.</p>
+            <% } %>
+
+            <p style="margin-top: 20px;">
+                <a href="/reservations">Gérer toutes les Réservations</a>
+            </p>
+        </section>
+
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 Capitainerie</p>
+    </footer>
+
+</body>
+</html>

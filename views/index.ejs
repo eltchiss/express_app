@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capitainerie du Port - Connexion</title>
+    <link rel="stylesheet" href="/styles/main.css"> 
+</head>
+<body>
+
+    <header>
+        <h1>Bienvenue à la Capitainerie</h1>
+    </header>
+
+    <main>
+        <section class="presentation">
+            <h2>Gestion du Port de Plaisance</h2>
+            <p>Cette application vous permet de gérer les catways, les réservations de places de port et les utilisateurs. L'accès aux fonctionnalités de gestion (CRUD) est réservé à la Capitainerie ou aux utilisateurs authentifiés.</p>
+        </section>
+
+        <hr>
+
+        <section class="connexion">
+            <h2>Connexion</h2>
+            
+            <form id="loginForm" method="POST" action="/auth/login">
+                <label for="email">Adresse Email :</label>
+                <input type="email" id="email" name="email" required>
+
+                <br><br>
+
+                <label for="password">Mot de Passe :</label>
+                <input type="password" id="password" name="password" required>
+
+                <br><br>
+
+                <button type="submit">Se Connecter</button>
+
+                <p id="messageErreur" style="color: red;"></p>
+            </form>
+        </section>
+
+        <hr>
+
+        <section class="documentation">
+            <h2>API REST</h2>
+            <p>Pour consulter la liste complète des routes API (JSON), consultez la documentation.</p>
+            <p><a href="/documentation">Accéder à la Documentation de l'API</a></p>
+        </section>
+
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 Capitainerie</p>
+    </footer>
+
+    <script>
+        // Ce script est crucial car la soumission du formulaire doit être gérée en JavaScript
+        // pour récupérer le JWT et faire la redirection.
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Empêche la soumission classique du formulaire
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('messageErreur');
+            errorElement.textContent = '';
+            
+            try {
+                const response = await fetch(this.action, { // this.action = /auth/login
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Connexion réussie : Stocker le token et rediriger
+                    // Méthode de stockage simple (LocalStorage)
+                    localStorage.setItem('jwtToken', data.token); 
+                    window.location.href = '/dashboard'; // Redirection vers le tableau de bord
+                } else {
+                    // Échec de la connexion
+                    errorElement.textContent = data.message || 'Erreur de connexion : identifiants invalides.';
+                }
+            } catch (error) {
+                errorElement.textContent = 'Erreur réseau ou serveur.';
+            }
+        });
+    </script>
+
+</body>
+</html>

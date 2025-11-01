@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion Réservations</title>
+</head>
+<body>
+
+    <%- include('nav.ejs') %> 
+
+    <h1>Gestion des Réservations</h1>
+
+    <section>
+        <h2>Ajouter une Réservation</h2>
+        <form id="addReservationForm">
+            <input type="number" name="catwayNumber" placeholder="N° Catway" required>
+            <input type="text" name="userEmail" placeholder="Email Utilisateur" required>
+            <input type="date" name="startDate" required>
+            <input type="date" name="endDate" required>
+            <button type="submit">Réserver</button>
+            <p id="reservationMessage"></p>
+        </form>
+    </section>
+
+    <hr>
+
+    <section>
+        <h2>Liste des Réservations</h2>
+        <table id="reservationsTable" border="1">
+            <thead>
+                <tr>
+                    <th>ID Résa</th>
+                    <th>Catway N°</th>
+                    <th>Début</th>
+                    <th>Fin</th>
+                    <th>Utilisateur</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </section>
+
+    <script>
+        const API_CATWAYS = '/catways';
+        const token = localStorage.getItem('jwtToken'); 
+
+        document.addEventListener('DOMContentLoaded', loadReservations);
+
+        // --- READ: Charger toutes les Réservations (approche simplifiée) ---
+        // NOTE: Comme l'API n'a pas de route GET /reservations, nous allons devoir lister
+        // les réservations via les API Catways, ce qui demande une complexité non désirée.
+        // Pour la simplicité maximale, nous allons simuler un GET global en listant les
+        // réservations du premier catway, ou en ajoutant une route simple dans l'API.
+        // Pour cet exercice, nous allons simuler une route qui liste toutes les réservations
+        // si elle existe dans le routeur principal (ex: GET /reservations)
+
+        async function loadReservations() {
+            const tbody = document.querySelector('#reservationsTable tbody');
+            tbody.innerHTML = '<tr><td colspan="6">Chargement... (Si la route /reservations existe)</td></tr>';
+            try {
+                // Cette route doit être créée pour la simplicité! (GET /reservations)
+                const response = await fetch('/reservations', { 
+                    headers: { 'Authorization': 'Bearer ' + token } 
+                });
+                const reservations = await response.json();
+                
+                tbody.innerHTML = '';
+                reservations.forEach(r => {
+                    const catwayId = r.catwayNumber; // ID du Catway
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${r._id}</td>
+                        <td>${catwayId}</td>
+                        <td>${new Date(r.startDate).toLocaleDateString('fr-FR')}</td>
+                        <td>${new Date(r.endDate).toLocaleDateString('fr-FR')}</td>
+                        <td>${r.user.email}</td>
+                        <td>
+                            <button onclick="editReservation('${catwayId}', '${r._id}', ...)">Modifier</button>
+                            <button onclick="deleteReservation('${catwayId}', '${r._id}')">Supprimer</button>
+                        </td>
+                    `;
+                });
+            } catch (error) {
+                // Fallback si GET /reservations n'existe pas
+                tbody.innerHTML = '<tr><td colspan="6">Veuillez d\'abord vous assurer que la route API GET /reservations (ou une route similaire) est créée, ou utilisez le GET /catways/:id/reservations.</td></tr>';
+            }
+        }
+
+        // --- CREATE: Ajouter une Réservation ---
+        document.getElementById('addReservationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const catwayId = this.catwayNumber.value;
+            // L'email du user doit être résolu en ID par le Back-end avant la création
+            // Simplifions en supposant que l'ID user est dans le formulaire ou que le Back-end le gère.
+            const data = {
+                startDate: this.startDate.value,
+                endDate: this.endDate.value,
+                // Le user n'est pas géré ici pour la simplicité (il doit être géré par l'API)
+            };
+            const msg = document.getElementById('reservationMessage');
+            try {
+                const response = await fetch(`${API_CATWAYS}/${catwayId}/reservations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    msg.textContent = `Réservation créée pour le Catway ${catwayId}!`;
+                    msg.style.color = 'green';
+                    this.reset();
+                    loadReservations();
+                } else {
+                    const error = await response.json();
+                    msg.textContent = "Erreur: " + (error.message || 'Échec. Chevauchement?');
+                    msg.style.color = 'red';
+                }
+            } catch (error) {
+                msg.textContent = "Erreur réseau.";
+                msg.style.color = 'red';
+            }
+        });
+
+        // --- DELETE: Supprimer une Réservation ---
+        async function deleteReservation(catwayId, reservationId) {
+            if (!confirm(`Supprimer Réservation ID ${reservationId} du Catway ${catwayId}?`)) return;
+            try {
+                const response = await fetch(`${API_CATWAYS}/${catwayId}/reservations/${reservationId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.status === 204) {
+                    loadReservations();
+                } else {
+                    alert('Échec de la suppression.');
+                }
+            } catch (error) {
+                alert('Erreur réseau.');
+            }
+        }
+        
+        // La fonction "editReservation" doit être créée par vous en utilisant PUT
+        function editReservation(catwayId, reservationId, startDate, endDate) {
+            alert("Fonction 'Modifier Réservation' à implémenter. Utilisez la méthode PUT.");
+        }
+    </script>
+
+</body>
+</html>
